@@ -39,12 +39,12 @@ def handle_fork_bomb_trace(b, hostname):
                 log_pid = int(parts[0])
                 log_tgid = int(parts[1])
                 log_count = int(parts[2])
-                timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+                timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
                 
                 log_entry = f"PID {log_pid} forked {log_count} subprocesses"
                 log_obj = {
                     "Time": f"{timestamp}",
-                    "Type": f"fork bomb",
+                    "Type": "fork bomb",
                     "Target": f"{hostname}",
                     "Info": f"{log_entry}"
                 }                
@@ -53,7 +53,7 @@ def handle_fork_bomb_trace(b, hostname):
 
 def handle_file_creation(cpu, data, size):
     event = b_file_creation["events"].event(data)
-    timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+    timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
     filename = event.filename.decode('utf-8')
     username = pwd.getpwuid(event.uid).pw_name
     log_entry = f"User {username} with UID {event.uid} created file {filename}"
@@ -68,7 +68,7 @@ def handle_file_creation(cpu, data, size):
 
 def handle_port_scan(cpu, data, size):
     event = ctypes.cast(data, ctypes.POINTER(Event)).contents
-    timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+    timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
     source_ip = socket.inet_ntoa(ctypes.c_uint32(event.src_ip).value.to_bytes(4, 'little'))
     if source_ip != hostname and source_ip != "8.8.4.4":
         log_entry = f"Host {source_ip} scanned {event.count} ports"
@@ -84,7 +84,7 @@ def handle_port_scan(cpu, data, size):
 def handle_login_attempt(cpu, data, size):
     event = b_login_attempt["events"].event(data)
     if event.uid != 0:
-        timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+        timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
         username = pwd.getpwuid(event.uid).pw_name
         source_ip = subprocess.run(f"ss -tp | grep ssh | grep $(ps -o ppid= -p {event.pid}) | awk -F: '{{print $8}}' | sed 's/]//g'", shell=True, capture_output=True, text=True).stdout.strip()
         log_entry = f"User {username} with UID {event.uid} successfully logged-in via SSH from {source_ip}"
@@ -100,7 +100,7 @@ def handle_login_attempt(cpu, data, size):
 def handle_sudo_command(cpu, data, size):
     event = b_sudo_command["events"].event(data)
     if event.uid != 0:
-        timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+        timestamp = str(datetime.now().strftime("%Y-%m-%dT%H:%M:%S"))
         command = subprocess.run(f"ps -p {event.pid} -o args --no-headers", shell=True, capture_output=True, text=True).stdout.strip()
         if command and 'sudo' in command:
             username = pwd.getpwuid(event.uid).pw_name
